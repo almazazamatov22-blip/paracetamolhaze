@@ -5,6 +5,9 @@ const path = require('path');
 const CLIENT_ID = 'njwi66jx4ju5kpb25aeh4fd4i2okq5';
 const CLIENT_SECRET = 'uspju8gdepuar3e7fgv7c5q0p5xem8';
 
+const SC_CLIENT_ID = 'B48zwWMdEXabNmvW';
+const SC_TOKEN = '$2y$10$1oDc6YqpQ2dOdh10tdmLhOZX56f99.u9rD.1gCKf2TqabJPUPeWKO';
+
 let tokenCache = null;
 let tokenExpiry = 0;
 
@@ -35,7 +38,7 @@ const server = http.createServer(async (req, res) => {
       const token = await getToken();
       const headers = { 'Client-ID': CLIENT_ID, 'Authorization': `Bearer ${token}` };
       
-      // User info
+      // User info via Twitch API
       if ((action === 'u' || url.pathname.includes('user')) && user) {
         const res2 = await fetch(`https://api.twitch.tv/helix/users?login=${user}`, { headers });
         const data = await res2.json();
@@ -43,6 +46,39 @@ const server = http.createServer(async (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.end(JSON.stringify(data.data?.[0] || { error: 'not found' }));
         return;
+      }
+      
+      // StreamsCharts API
+      if (action === 'sc' && user) {
+        try {
+          // First get user ID from Twitch
+          const userRes = await fetch(`https://api.twitch.tv/helix/users?login=${user}`, { headers });
+          const userData = await userRes.json();
+          const twitchId = userData.data?.[0]?.id;
+          
+          if (!twitchId) {
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'user not found' }));
+            return;
+          }
+          
+          // Then get data from streamscharts
+          const scRes = await fetch(`https://streamscharts.com/api/token?login=${twitchId}`, {
+            headers: {
+              'Authorization': `Bearer ${SC_TOKEN}`,
+              'Client-ID': SC_CLIENT_ID
+            }
+          });
+          const scData = await scRes.json();
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.end(JSON.stringify(scData));
+          return;
+        } catch (e) {
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: e.message }));
+          return;
+        }
       }
       
       // Stream status
