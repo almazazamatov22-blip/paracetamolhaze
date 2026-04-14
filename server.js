@@ -40,12 +40,20 @@ const server = http.createServer(async (req, res) => {
       
       // User info via Twitch API
       if ((action === 'u' || url.pathname.includes('user')) && user) {
-        const res2 = await fetch(`https://api.twitch.tv/helix/users?login=${user}`, { headers });
-        const data = await res2.json();
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.end(JSON.stringify(data.data?.[0] || { error: 'not found' }));
-        return;
+        try {
+          const res2 = await fetch(`https://api.twitch.tv/helix/users?login=${user}`, { headers });
+          const data = await res2.json();
+          console.log('Twitch response:', data);
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.end(JSON.stringify(data.data?.[0] || { error: 'not found', data: data }));
+          return;
+        } catch (e) {
+          console.log('Twitch error:', e.message);
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: e.message }));
+          return;
+        }
       }
       
       // StreamsCharts API
