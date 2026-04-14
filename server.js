@@ -27,7 +27,7 @@ const server = http.createServer(async (req, res) => {
   console.log('Request:', req.method, url.pathname);
   
   // API endpoint
-  if (url.pathname.startsWith('/api/') || url.pathname === '/api') {
+  if (url.pathname.startsWith('/api') || url.pathname === '/api') {
     const action = url.searchParams.get('a');
     const user = url.searchParams.get('u');
     
